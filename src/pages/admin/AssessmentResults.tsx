@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 
-// Mock assessment results data
 const mockAssessmentResults = [
   { 
     id: '1', 
@@ -64,7 +62,6 @@ const mockAssessmentResults = [
   },
 ];
 
-// Filter options
 const statusOptions = [
   { value: 'all', label: 'All Statuses' },
   { value: 'pending_review', label: 'Pending Review' },
@@ -114,6 +111,13 @@ const AssessmentResults: React.FC = () => {
     if (score >= 80) return 'text-blue-600';
     if (score >= 70) return 'text-yellow-600';
     return 'text-red-600';
+  };
+  
+  const getProgressColorClass = (score: number) => {
+    if (score >= 90) return 'bg-green-500';
+    if (score >= 80) return 'bg-blue-500';
+    if (score >= 70) return 'bg-yellow-500';
+    return 'bg-red-500';
   };
   
   const getStatusBadge = (status: string) => {
@@ -199,16 +203,22 @@ const AssessmentResults: React.FC = () => {
                             {result.score.overall}%
                           </span>
                         </div>
-                        <Progress
-                          value={result.score.overall}
-                          className="h-2"
-                          indicatorClassName={
-                            result.score.overall >= 90 ? 'bg-green-500' :
-                            result.score.overall >= 80 ? 'bg-blue-500' :
-                            result.score.overall >= 70 ? 'bg-yellow-500' :
-                            'bg-red-500'
-                          }
-                        />
+                        <div className={`relative h-2 w-full overflow-hidden rounded-full bg-secondary`}>
+                          <Progress 
+                            value={result.score.overall} 
+                            className="h-2"
+                            style={{
+                              backgroundColor: "transparent",
+                            }}
+                          />
+                          <div 
+                            className={`absolute top-0 left-0 h-full ${getProgressColorClass(result.score.overall)}`} 
+                            style={{ 
+                              width: `${result.score.overall}%`, 
+                              transition: "width 0.3s ease-in-out" 
+                            }}
+                          />
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
