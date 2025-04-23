@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -140,6 +140,7 @@ const mockAssessments: Record<string, Assessment> = {
 const AssessmentPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   
   const [assessment, setAssessment] = useState<Assessment | null>(null);
@@ -147,16 +148,17 @@ const AssessmentPage: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  
+  const [failed, setFailed] = useState(false);
+  const [requestReattempt, setRequestReattempt] = useState(false);
+  const wasStarted = useRef(false);
+  const viewOnly = new URLSearchParams(location.search).has("view");
+
   useEffect(() => {
-    // In a real app, fetch the assessment from an API
     if (id && mockAssessments[id]) {
       const assessmentData = mockAssessments[id];
       setAssessment(assessmentData);
-      
-      // Initialize answers with any existing ones
       const initialAnswers: Record<string, string> = {};
-      assessmentData.questions.forEach(question => {
+      assessmentData.questions.forEach((question) => {
         if (question.answer) {
           initialAnswers[question.id] = question.answer;
         }
@@ -164,30 +166,62 @@ const AssessmentPage: React.FC = () => {
       setAnswers(initialAnswers);
     }
   }, [id]);
-  
+
+  // Fullscreen and anti-switch logic (only if not viewOnly)
+  useEffect(() => {
+    if (viewOnly) return; // Do not apply lock for view mode
+
+    // Enter fullscreen on mount
+    const enterFullScreen = () => {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+    };
+    enterFullScreen();
+
+    const handleBlur = () => {
+      if (!wasStarted.current) return;
+      // Only apply once assessment "started" in this session
+      setFailed(true);
+      document.exitFullscreen?.();
+    };
+    const handleVisibility = () => {
+      // If page is hidden (tab switch), fail
+      if (document.hidden && !failed) {
+        setFailed(true);
+        document.exitFullscreen?.();
+      }
+    };
+    window.addEventListener("blur", handleBlur);
+    document.addEventListener("visibilitychange", handleVisibility);
+    // Clean up on unmount
+    return () => {
+      window.removeEventListener("blur", handleBlur);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      document.exitFullscreen?.();
+    };
+  }, [failed, viewOnly]);
+
   if (!assessment) {
     return <div className="flex justify-center items-center h-64">Loading assessment...</div>;
   }
-  
+
   const currentQuestion = assessment.questions[currentQuestionIndex];
   const answeredCount = Object.keys(answers).length;
   const totalQuestions = assessment.questions.length;
   const progress = Math.round((answeredCount / totalQuestions) * 100);
-  
+
   const handleAnswerChange = (questionId: string, value: string) => {
+    wasStarted.current = true; // Mark as started for focus detection after first answer
     setAnswers(prev => ({
       ...prev,
       [questionId]: value
     }));
   };
-  
+
   const handleSave = async () => {
     setIsSaving(true);
-    
     try {
-      // In a real app, save answers to an API
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
       toast({
         title: 'Progress saved',
         description: 'Your answers have been saved successfully.',
@@ -202,20 +236,17 @@ const AssessmentPage: React.FC = () => {
       setIsSaving(false);
     }
   };
-  
-  const handleSubmit = async () => {
+
+  const handleSubmit = async (isManual = true) => {
     setIsSaving(true);
-    
     try {
-      // In a real app, submit the assessment to an API
-      await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-      
+      await new Promise(resolve => setTimeout(resolve, 1500));
       toast({
-        title: 'Assessment submitted',
-        description: 'Your assessment has been submitted successfully.',
+        title: isManual ? 'Assessment submitted' : 'Assessment failed',
+        description: isManual
+          ? 'Your assessment has been submitted successfully.'
+          : 'Assessment failed due to loss of focus or switching screens.',
       });
-      
-      // Navigate back to dashboard
       navigate('/consultant/dashboard');
     } catch (error) {
       toast({
@@ -228,7 +259,7 @@ const AssessmentPage: React.FC = () => {
       setIsSubmitDialogOpen(false);
     }
   };
-  
+
   const getDaysRemaining = (deadline: string) => {
     const deadlineDate = new Date(deadline);
     const today = new Date();
@@ -236,7 +267,7 @@ const AssessmentPage: React.FC = () => {
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
-  
+
   const navigateQuestion = (direction: 'next' | 'prev') => {
     if (direction === 'next' && currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -244,16 +275,48 @@ const AssessmentPage: React.FC = () => {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     }
   };
-  
-  // Check if the assessment is fully answered
+
+  // Only allow submit if all questions answered and not failed, and not in view mode
   const isFullyAnswered = assessment.questions.every(q => answers[q.id]);
-  
-  // Calculate if deadline is approaching (less than 3 days)
   const daysRemaining = getDaysRemaining(assessment.deadline);
   const isDeadlineApproaching = daysRemaining <= 3 && daysRemaining > 0;
-  
+
+  // If failed, show the failed view
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-red-50">
+        <div className="max-w-md bg-white shadow-lg rounded-lg p-8 mt-8 flex flex-col items-center">
+          <AlertTriangle className="h-10 w-10 text-red-500 mb-3" />
+          <h2 className="text-2xl font-bold mb-2 text-red-600">Assessment Failed</h2>
+          <p className="mb-4 text-center">
+            Your assessment was closed because you switched tabs or apps.<br />
+            Please raise a request to attempt again. This will be reviewed by the admin.
+          </p>
+          {!requestReattempt ? (
+            <Button
+              className="bg-assessment-blue hover:bg-assessment-navy mb-2"
+              onClick={() => setRequestReattempt(true)}
+            >
+              Request Re-attempt
+            </Button>
+          ) : (
+            <span className="text-green-600 font-medium">Request sent to admin!</span>
+          )}
+          <Button
+            variant="outline"
+            onClick={() => navigate('/consultant/dashboard')}
+            className="mt-4"
+          >
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // View mode (already completed) just disables answers
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 min-h-screen bg-soft-gray ${!viewOnly ? "fixed inset-0 z-40" : ""}`}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-assessment-blue">{assessment.title}</h1>
@@ -266,7 +329,6 @@ const AssessmentPage: React.FC = () => {
           Back to Dashboard
         </Button>
       </div>
-      
       <div className="bg-white rounded-lg shadow p-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
           <div className="flex-1">
@@ -278,17 +340,15 @@ const AssessmentPage: React.FC = () => {
               </span>
             </div>
           </div>
-          
           <div className="flex items-center text-sm mt-2 sm:mt-0">
             <Clock className="h-4 w-4 mr-1" />
             <span>
-              {daysRemaining <= 0 
-                ? "Deadline passed" 
+              {daysRemaining <= 0
+                ? "Deadline passed"
                 : `${daysRemaining} days remaining`}
             </span>
           </div>
         </div>
-        
         {isDeadlineApproaching && (
           <div className="flex items-center bg-orange-50 text-orange-700 p-3 rounded-md mb-4">
             <AlertTriangle className="h-5 w-5 mr-2" />
@@ -296,7 +356,6 @@ const AssessmentPage: React.FC = () => {
           </div>
         )}
       </div>
-      
       <Card className="shadow">
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
@@ -308,28 +367,28 @@ const AssessmentPage: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="text-lg font-medium">{currentQuestion.text}</div>
-          
           {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
-            <RadioGroup 
-              value={answers[currentQuestion.id] || ''} 
+            <RadioGroup
+              value={answers[currentQuestion.id] || ''}
               onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               className="space-y-3"
+              disabled={viewOnly}
             >
               {currentQuestion.options.map((option, i) => (
                 <div key={i} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option} id={`option-${i}`} />
+                  <RadioGroupItem value={option} id={`option-${i}`} disabled={viewOnly} />
                   <Label htmlFor={`option-${i}`} className="cursor-pointer">{option}</Label>
                 </div>
               ))}
             </RadioGroup>
           )}
-          
           {currentQuestion.type === 'essay' && (
-            <Textarea 
+            <Textarea
               placeholder="Enter your answer here..."
               value={answers[currentQuestion.id] || ''}
               onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
               className="min-h-[200px]"
+              disabled={viewOnly}
             />
           )}
         </CardContent>
@@ -338,50 +397,52 @@ const AssessmentPage: React.FC = () => {
             <Button
               variant="outline"
               onClick={() => navigateQuestion('prev')}
-              disabled={currentQuestionIndex === 0}
+              disabled={currentQuestionIndex === 0 || viewOnly}
             >
               <ChevronLeft className="mr-1 h-4 w-4" /> Previous
             </Button>
             <Button
               variant="outline"
               onClick={() => navigateQuestion('next')}
-              disabled={currentQuestionIndex === totalQuestions - 1}
+              disabled={currentQuestionIndex === totalQuestions - 1 || viewOnly}
             >
               Next <ChevronRight className="ml-1 h-4 w-4" />
             </Button>
           </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              <Save className="mr-1 h-4 w-4" /> Save Progress
-            </Button>
-            <Button
-              className="bg-assessment-blue hover:bg-assessment-navy"
-              onClick={() => setIsSubmitDialogOpen(true)}
-              disabled={isSaving || !isFullyAnswered}
-            >
-              Submit Assessment
-            </Button>
-          </div>
+          {!viewOnly && (
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                <Save className="mr-1 h-4 w-4" /> Save Progress
+              </Button>
+              <Button
+                className="bg-assessment-blue hover:bg-assessment-navy"
+                onClick={() => setIsSubmitDialogOpen(true)}
+                disabled={isSaving || !isFullyAnswered}
+              >
+                Submit Assessment
+              </Button>
+            </div>
+          )}
         </CardFooter>
       </Card>
-      
+      {/* AlertDialog for submit confirmation */}
       <AlertDialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Submit this assessment?</AlertDialogTitle>
             <AlertDialogDescription>
-              You're about to submit your assessment. Once submitted, you won't be able to make any further changes. 
+              You're about to submit your assessment. Once submitted, you won't be able to make any further changes.
               Make sure you've reviewed all your answers before submitting.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleSubmit}
+              onClick={() => handleSubmit(true)}
               disabled={isSaving}
               className="bg-assessment-blue hover:bg-assessment-navy"
             >

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,21 +13,17 @@ import {
   X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Topbar from "../Topbar";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
-  
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
   
   const isActive = (path: string) => {
     return location.pathname.includes(path);
@@ -93,27 +88,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             ))}
           </nav>
         </div>
-        
-        <div className="absolute bottom-0 w-full p-4">
-          <div className="border-t border-assessment-navy pt-4 mb-2">
-            <p className="text-sm opacity-70 mb-1">{user?.name}</p>
-            <p className="text-xs opacity-50">{user?.email}</p>
-          </div>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-white hover:bg-assessment-navy"
-            onClick={handleLogout}
-          >
-            <LogOut className="mr-2 h-5 w-5" />
-            Logout
-          </Button>
-        </div>
       </aside>
       
-      {/* Main Content */}
-      <main className="flex-1 p-6 overflow-y-auto">
-        {children}
-      </main>
+      {/* Main Content with Topbar */}
+      <div className="flex-1 flex flex-col">
+        <Topbar />
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+      </div>
     </div>
   );
 };

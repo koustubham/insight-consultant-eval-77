@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Clock, AlertTriangle } from 'lucide-react';
 
-// Mock data for assessments
 const mockAssessments = [
   {
     id: '1',
@@ -38,7 +36,6 @@ const mockAssessments = [
 const ConsultantDashboard: React.FC = () => {
   const navigate = useNavigate();
   
-  // Function to calculate days remaining until deadline
   const getDaysRemaining = (deadline: string) => {
     const deadlineDate = new Date(deadline);
     const today = new Date();
@@ -47,7 +44,6 @@ const ConsultantDashboard: React.FC = () => {
     return diffDays;
   };
   
-  // Function to get appropriate badge for assessment status
   const getStatusBadge = (status: string, deadline: string) => {
     const daysRemaining = getDaysRemaining(deadline);
     
@@ -62,11 +58,16 @@ const ConsultantDashboard: React.FC = () => {
     }
   };
   
-  // Function to get progress percentage
   const getProgressPercentage = (answered: number, total: number) => {
     return Math.round((answered / total) * 100);
   };
-  
+
+  const getAssessmentButtonText = (status: string) => {
+    if (status === "not_started") return "Start Assessment";
+    if (status === "completed") return "View Assessment";
+    return "View Assessment";
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -118,11 +119,14 @@ const ConsultantDashboard: React.FC = () => {
               <CardFooter>
                 <Button 
                   className="w-full bg-assessment-blue hover:bg-assessment-navy"
-                  onClick={() => navigate(`/consultant/assessment/${assessment.id}`)}
+                  onClick={() => navigate(
+                    assessment.status === "not_started"
+                      ? `/consultant/assessment/${assessment.id}`
+                      : `/consultant/assessment/${assessment.id}?view=1`
+                  )}
+                  disabled={assessment.status !== "not_started" && assessment.status !== "completed"}
                 >
-                  {assessment.status === 'not_started' ? 'Start Assessment' : 
-                   assessment.status === 'in_progress' ? 'Continue Assessment' : 
-                   'View Assessment'}
+                  {getAssessmentButtonText(assessment.status)}
                 </Button>
               </CardFooter>
             </Card>
