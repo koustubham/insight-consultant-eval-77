@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +46,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
   ];
   
   const navItems = isAdmin ? adminNavItems : consultantNavItems;
+
+  // Check if current page is assessment page
+  const isAssessmentPage = location.pathname.includes('/consultant/assessment/');
+  
+  // If on assessment page, we don't want to show the sidebar
+  if (isAssessmentPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {children}
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row">

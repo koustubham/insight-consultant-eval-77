@@ -316,119 +316,127 @@ const AssessmentPage: React.FC = () => {
 
   // View mode (already completed) just disables answers
   return (
-    <div className={`space-y-6 min-h-screen bg-soft-gray ${!viewOnly ? "fixed inset-0 z-40" : ""}`}>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-assessment-blue">{assessment.title}</h1>
-          <p className="text-muted-foreground">{assessment.jobDescription}</p>
+    <div className={`min-h-screen w-full ${!viewOnly ? "fixed inset-0 z-40" : ""}`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-assessment-blue">{assessment.title}</h1>
+            <p className="text-muted-foreground">{assessment.jobDescription}</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/consultant/dashboard')}
+          >
+            Back to Dashboard
+          </Button>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/consultant/dashboard')}
-        >
-          Back to Dashboard
-        </Button>
-      </div>
-      <div className="bg-white rounded-lg shadow p-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
-          <div className="flex-1">
-            <h2 className="text-lg font-medium">Assessment Progress</h2>
-            <div className="flex items-center mt-1">
-              <Progress value={progress} className="h-2 flex-1 mr-2" />
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
-                {answeredCount}/{totalQuestions} answered
+        
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
+            <div className="flex-1 w-full">
+              <h2 className="text-lg font-medium">Assessment Progress</h2>
+              <div className="flex items-center mt-1 gap-2 w-full">
+                <Progress value={progress} className="h-2 flex-1" />
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {answeredCount}/{totalQuestions} answered
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center text-sm mt-2 sm:mt-0">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>
+                {daysRemaining <= 0
+                  ? "Deadline passed"
+                  : `${daysRemaining} days remaining`}
               </span>
             </div>
           </div>
-          <div className="flex items-center text-sm mt-2 sm:mt-0">
-            <Clock className="h-4 w-4 mr-1" />
-            <span>
-              {daysRemaining <= 0
-                ? "Deadline passed"
-                : `${daysRemaining} days remaining`}
-            </span>
-          </div>
-        </div>
-        {isDeadlineApproaching && (
-          <div className="flex items-center bg-orange-50 text-orange-700 p-3 rounded-md mb-4">
-            <AlertTriangle className="h-5 w-5 mr-2" />
-            <span>Deadline is approaching! Please complete your assessment soon.</span>
-          </div>
-        )}
-      </div>
-      <Card className="shadow">
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              {currentQuestion.type === 'multiple_choice' ? 'Multiple Choice' : 'Essay Question'}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-lg font-medium">{currentQuestion.text}</div>
-          {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
-            <RadioGroup
-              value={answers[currentQuestion.id] || ''}
-              onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
-              className="space-y-3"
-              disabled={viewOnly}
-            >
-              {currentQuestion.options.map((option, i) => (
-                <div key={i} className="flex items-center space-x-2">
-                  <RadioGroupItem value={option} id={`option-${i}`} disabled={viewOnly} />
-                  <Label htmlFor={`option-${i}`} className="cursor-pointer">{option}</Label>
-                </div>
-              ))}
-            </RadioGroup>
-          )}
-          {currentQuestion.type === 'essay' && (
-            <Textarea
-              placeholder="Enter your answer here..."
-              value={answers[currentQuestion.id] || ''}
-              onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-              className="min-h-[200px]"
-              disabled={viewOnly}
-            />
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => navigateQuestion('prev')}
-              disabled={currentQuestionIndex === 0 || viewOnly}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" /> Previous
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => navigateQuestion('next')}
-              disabled={currentQuestionIndex === totalQuestions - 1 || viewOnly}
-            >
-              Next <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          </div>
-          {!viewOnly && (
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                <Save className="mr-1 h-4 w-4" /> Save Progress
-              </Button>
-              <Button
-                className="bg-assessment-blue hover:bg-assessment-navy"
-                onClick={() => setIsSubmitDialogOpen(true)}
-                disabled={isSaving || !isFullyAnswered}
-              >
-                Submit Assessment
-              </Button>
+          {isDeadlineApproaching && (
+            <div className="flex items-center bg-orange-50 text-orange-700 p-3 rounded-md">
+              <AlertTriangle className="h-5 w-5 mr-2" />
+              <span>Deadline is approaching! Please complete your assessment soon.</span>
             </div>
           )}
-        </CardFooter>
-      </Card>
+        </div>
+        
+        <Card className="shadow mb-6">
+          <CardHeader>
+            <CardTitle className="flex justify-between items-center">
+              <span>Question {currentQuestionIndex + 1} of {totalQuestions}</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {currentQuestion.type === 'multiple_choice' ? 'Multiple Choice' : 'Essay Question'}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-lg font-medium">{currentQuestion.text}</div>
+            {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
+              <RadioGroup
+                value={answers[currentQuestion.id] || ''}
+                onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+                className="space-y-3"
+                disabled={viewOnly}
+              >
+                {currentQuestion.options.map((option, i) => (
+                  <div key={i} className="flex items-center space-x-2">
+                    <RadioGroupItem value={option} id={`option-${i}`} disabled={viewOnly} />
+                    <Label htmlFor={`option-${i}`} className="cursor-pointer">{option}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+            {currentQuestion.type === 'essay' && (
+              <Textarea
+                placeholder="Enter your answer here..."
+                value={answers[currentQuestion.id] || ''}
+                onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
+                className="min-h-[200px]"
+                disabled={viewOnly}
+              />
+            )}
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
+            <div className="flex space-x-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => navigateQuestion('prev')}
+                disabled={currentQuestionIndex === 0 || viewOnly}
+                className="flex-1 sm:flex-none"
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigateQuestion('next')}
+                disabled={currentQuestionIndex === totalQuestions - 1 || viewOnly}
+                className="flex-1 sm:flex-none"
+              >
+                Next <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+            {!viewOnly && (
+              <div className="flex space-x-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 sm:flex-none"
+                >
+                  <Save className="mr-1 h-4 w-4" /> Save Progress
+                </Button>
+                <Button
+                  className="bg-assessment-blue hover:bg-assessment-navy flex-1 sm:flex-none"
+                  onClick={() => setIsSubmitDialogOpen(true)}
+                  disabled={isSaving || !isFullyAnswered}
+                >
+                  Submit Assessment
+                </Button>
+              </div>
+            )}
+          </CardFooter>
+        </Card>
+      </div>
+      
       {/* AlertDialog for submit confirmation */}
       <AlertDialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
         <AlertDialogContent>
