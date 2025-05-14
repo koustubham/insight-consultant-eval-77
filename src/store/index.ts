@@ -7,7 +7,11 @@ import rootSaga from "./rootSaga";
 const sagaMiddleware = createSagaMiddleware();
 const middlewares: Middleware[] = [sagaMiddleware];
 
-const store = createStore(rootReducer, applyMiddleware(...middlewares));
+// Fix the createStore type issue by properly typing the store
+const store = createStore(
+  rootReducer,
+  applyMiddleware(...middlewares)
+);
 
 sagaMiddleware.run(rootSaga);
 export type AppDispatch = typeof store.dispatch;
