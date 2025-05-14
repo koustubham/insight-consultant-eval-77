@@ -1,11 +1,13 @@
 
-import { applyMiddleware, createStore } from "redux";
+import { applyMiddleware, createStore, Middleware } from "redux";
 import createSagaMiddleware from "redux-saga";
 import rootReducer from "./rootReducer";
 import rootSaga from "./rootSaga";
 
 const sagaMiddleware = createSagaMiddleware();
-const store = createStore(rootReducer, applyMiddleware(sagaMiddleware));
+const middlewares: Middleware[] = [sagaMiddleware];
+
+const store = createStore(rootReducer, applyMiddleware(...middlewares));
 
 sagaMiddleware.run(rootSaga);
 export type AppDispatch = typeof store.dispatch;
