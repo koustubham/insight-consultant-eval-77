@@ -7,7 +7,7 @@ import rootSaga from "./rootSaga";
 const sagaMiddleware = createSagaMiddleware();
 const middlewares: Middleware[] = [sagaMiddleware];
 
-// Fix the createStore type issue by properly typing the store
+// Create store with proper type configuration
 const store = createStore(
   rootReducer,
   applyMiddleware(...middlewares)
