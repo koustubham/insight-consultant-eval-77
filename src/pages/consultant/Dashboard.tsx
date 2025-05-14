@@ -56,7 +56,7 @@ const ConsultantDashboard: React.FC = () => {
     // Initialize assessment with first request
     dispatch(fetchQuestion({ 
       content: `Skill ID is ${assessmentData.id} and project name is ${assessmentData.title}` 
-    }));
+    }) as any);
     // Navigate to assessment page
     navigate(`/consultant/assessment/${assessmentData.id}`);
   };

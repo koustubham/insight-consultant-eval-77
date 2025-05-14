@@ -42,7 +42,7 @@ const AssessmentPage: React.FC = () => {
       return;
     }
     
-    dispatch(fetchQuestion({ content: answer }));
+    dispatch(fetchQuestion({ content: answer }) as any);
     setQuestionCount(prev => prev + 1);
     setAnswer("");
   };
